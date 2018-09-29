@@ -7,7 +7,7 @@ about: linux enthusiast
 avatar_url: /static/img/avatar.jpg
 
 enableTags: true
-tagarray: ["linux", "python", "cloud", "gcp"]
+tagarray: []
 
 collections:
   project:
@@ -25,10 +25,10 @@ social:
     # fb_appid: 1749788565247320
 
 urls:
+    - text: Categories
+      url: /category/
     - text: About Me
       url: /about/
-    - text: Topics
-      url: /category/
     #- text: My Projects
       # url: /projects/
     - text: XML Feed
