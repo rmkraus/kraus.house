@@ -4,6 +4,6 @@ title: About
 permalink: /about/
 ---
 
-I am freelance developer. Currently doing more in backend, focused in Python and Django.
-
-email: agus[at]python.web.id
+I am a Linux enthusiast with a pasion for learning new open source platforms.
+My background is in engineering, scientific computing, Python, Linux, and
+DevOps. This steers my random projects which get documented here.

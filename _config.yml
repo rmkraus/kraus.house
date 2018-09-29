@@ -19,6 +19,8 @@ social:
       link: "https://www.linkedin.com/in/ryan-kraus-1617b7121/"
     - icon: fa-github
       link: "https://github.com/rmkraus"
+    - icon: fa-envelope
+      link: "mailto:rmkraus@gmail.com"
 
 # share:
     # twitter_username: agusmakmun6
