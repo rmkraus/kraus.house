@@ -27,6 +27,8 @@ social:
 urls:
     - text: About Me
       url: /about/
+    - text: Topics
+      url: /category/
     #- text: My Projects
       # url: /projects/
     - text: XML Feed
