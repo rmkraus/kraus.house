@@ -1,4 +1,4 @@
-title: Random Findings
+title: "# man"
 description: Personal journal of technology exploration.
 author: Ryan Kraus
 github: https://github.com/rmkraus/kraus.house
@@ -27,13 +27,13 @@ social:
     # fb_appid: 1749788565247320
 
 urls:
-    - text: Categories
+    - text: '# ls'
       url: /category/
-    - text: About Me
+    - text: '# finger'
       url: /about/
     #- text: My Projects
       # url: /projects/
-    - text: XML Feed
+    - text: '# rss'
       url: /feed.xml
 
 url: "https://kraus.house"

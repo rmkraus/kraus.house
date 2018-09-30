@@ -1,9 +1,16 @@
 ---
 layout: page
-title: About
+title: "# finger"
 permalink: /about/
 ---
 
-I am a Linux enthusiast with a pasion for learning new open source platforms.
-My background is in engineering, scientific computing, Python, Linux, and
-DevOps. This steers my random projects which get documented here.
+Login: rmkraus<br />
+Name: Ryan Kraus<br />
+Shell: /bin/bash
+
+On since Fri Sep 28
+
+Plan: Professional tinkerer with a pasion for learning new open source
+platforms and building infrastructure to solve problems. My background is in
+engineering, scientific computing, Python, Linux, and DevOps. Herein, is
+documented the results of my tinkering.

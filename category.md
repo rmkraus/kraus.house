@@ -1,7 +1,5 @@
 ---
 layout: all_categories
-title:  "Categories"
+title:  "# ls"
 permalink: /category/
 ---
-
-Things I like to talk about.
