@@ -8,7 +8,7 @@ Login: rmkraus<br />
 Name: Ryan Kraus<br />
 Shell: /bin/bash
 
-On since Fri Sep 28
+On since Mon Oct 8
 
 Plan: Professional tinkerer with a pasion for learning new open source
 platforms and building infrastructure to solve problems. My background is in

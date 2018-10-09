@@ -33,7 +33,7 @@ urls:
       url: /about/
     #- text: My Projects
       # url: /projects/
-    - text: '# rss'
+    - text: '# tail -f'
       url: /feed.xml
 
 url: "https://kraus.house"
