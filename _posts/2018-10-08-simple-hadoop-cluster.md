@@ -23,6 +23,7 @@ consider Hadoop:
 * Data Locality when using HDFS Analytics Engines
 * Lower Cost - Data drives do not require RAID in production
 * Highly scalable
+* Efficiently manages large amounts of unstrctured data
 
 ## Simple Cluster Setup
 
