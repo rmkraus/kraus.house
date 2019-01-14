@@ -97,9 +97,13 @@ sudo su - hadoop
 /opt/hadoop/hadoop-3.1.1/sbin/stop-yarn.sh
 ```
 
-## Next Steps
+## Debugging Issues
 
-In future posts, we'll explore:
-* Interacting with the Filesystem and Running MapReduce Jobs
-* Installing Spark and Querying Data
-* Considerations for Production Deployments
+When running into issues, the problem is almost always an issue with memory
+allocation to the various JVM's. Linode's documentation [1] explains how to
+increase this with nice diagrams.
+
+## External Sources
+
+* “How to Install and Set Up a 3-Node Hadoop Cluster.” Linode Guides & Tutorials, 16 Oct. 2017, [www.linode.com/docs/databases/hadoop/how-to-install-and-set-up-hadoop-cluster/](www.linode.com/docs/databases/hadoop/how-to-install-and-set-up-hadoop-cluster/).
+* “Install, Configure, and Run Spark on Top of a Hadoop YARN Cluster.” Linode Guides & Tutorials, 23 Oct. 2017, [www.linode.com/docs/databases/hadoop/install-configure-run-spark-on-top-of-hadoop-yarn-cluster/](www.linode.com/docs/databases/hadoop/install-configure-run-spark-on-top-of-hadoop-yarn-cluster/).
