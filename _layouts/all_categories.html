@@ -9,7 +9,7 @@ layout: default
   {{ content }}
   <hr />
   <ul>
-  {% for category in site.categories %}
+  {% for category in site.categories | sort %}
     {% capture category_slug %}{{ category | first }}{% endcapture %}
     {% for c_slug in category_slug %}
       <li><a href="/category/{{ c_slug }}">{{ c_slug }}</a></li>
