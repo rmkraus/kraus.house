@@ -9,9 +9,9 @@ layout: default
   {{ content }}
   <hr />
   <ul>
-  {% for category in site.categories | sort %}
+  {% for category in site.categories | sort(case_sensitive=False) %}
     {% capture category_slug %}{{ category | first }}{% endcapture %}
-    {% for c_slug in category_slug %}
+    {% for c_slug in category_slug | sort(case_sensitive=False) %}
       <li><a href="/category/{{ c_slug }}">{{ c_slug }}</a></li>
     {% endfor %}
   {% endfor %}
