@@ -29,7 +29,7 @@ consider Hadoop:
 
 We can get started with Hadoop by building a simple cluster.
 
-![Simple Hadoop](https://raw.githubusercontent.com/rmkraus/kraus.house/master/static/img/_posts/hdfs-simple.png  "Simple Hadoop Architecture")
+![Simple Hadoop](https://raw.githubusercontent.com/rmkraus/rmkra.us/master/static/img/_posts/hdfs-simple.png  "Simple Hadoop Architecture")
 
 This cluster will consist of three nodes and one client. Each node will have a
 single storage device which means one drive for metadata and two drives for

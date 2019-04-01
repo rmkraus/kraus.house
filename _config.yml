@@ -1,7 +1,7 @@
 title: "# man"
 description: Personal journal of technology exploration.
 author: Ryan Kraus
-github: https://github.com/rmkraus/kraus.house
+github: https://github.com/rmkraus/rmkra.us
 about: linux enthusiast
 # google_analytics: UA-XXXXXXXX-Y
 avatar_url: /static/img/avatar.jpg
@@ -37,7 +37,7 @@ urls:
     - text: '# tail -f'
       url: /feed.xml
 
-url: "https://kraus.house"
+url: "https://rmkra.us"
 baseurl: ""
 paginate: 20
 per_page: 20
