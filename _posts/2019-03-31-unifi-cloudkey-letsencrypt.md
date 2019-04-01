@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Securing Unifi Cloud Key with Let's Encrypt Certificates"
+title:  "Securing UniFi Cloud Key with Let's Encrypt Certificates"
 date:   2019-03-31 23:00:00 +0500
 categories: [security, networking, unifi, ssl, ansible]
 ---
@@ -49,7 +49,7 @@ Let's quickly go over the whole process before going in-depth in each step.
   3. Prepare the Cloud Key for a peristent and custom key store.
   4. Upload all certificates, keys, and the keystore onto the Cloud Key.
   5. Change the NGINX configuration to use the newly uploaded keys.
-  6. Import the PCKS12 Keystore into the JKS Keystore used by Unifi.
+  6. Import the PKCS12 Keystore into the JKS Keystore used by UniFi.
   7. Restart HTTPS hosting services.
   8. Clean up.
 
@@ -186,9 +186,9 @@ nginx -t
 
 You'll want to fix any errors this reports.
 
-## Import the PCKS12 Keystore into the JKS Keystore used by Unifi
+## Import the PKCS12 Keystore into the JKS Keystore used by UniFi
 
-Now we are going to take that PCKS12 keystore we created and import it into
+Now we are going to take that PKCS12 keystore we created and import it into
 UniFi's JKS keystore. The password for the keystore we created was temppass,
 but the password used by UniFi's keystore is aircontrolenterprise. We perform
 this action with the following command.
