@@ -83,7 +83,7 @@ The video plugin is used by Mupen to render on-screen video. I'll be using glide
 ```bash
 sudo apt-get install \
 libboost-dev libboost-filesystem-dev \
-libboost-system-dev
+libboost-system-dev libgl-dev
 ```
 3. Go to the Unix project. Compile and install.
 ```bash
@@ -133,7 +133,7 @@ This is a more full featured GUI for Mupen. I'm not really using it, but the ins
   ```bash
   sudo apt-get install \
   python-pip python-pyqt5 pyqt5-dev-tools \
-  python-pyqt5.qtopengl
+  python-pyqt5.qtopengl python-opengl
   ```
   3. Build and install the Python module.
   ```bash
