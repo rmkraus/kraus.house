@@ -2,7 +2,7 @@
 layout: post
 title:  "Securing UniFi Cloud Key with Let's Encrypt Certificates"
 date:   2019-03-31 23:00:00 +0500
-categories: [security, networking, unifi, ssl, ansible]
+categories: [security, networking, unifi, ssl, ansible, homelab]
 ---
 
 Ubiquity's UniFi networking gear is a great setup to drive your home lab. You
