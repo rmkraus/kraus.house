@@ -28,18 +28,22 @@ Chapter 1 of the [installation manual](https://access.redhat.com/documentation/e
   --enable=rhel-7-server-ansible-2.8-rpms
   ```
 4. Join the Satellite server to your IPA Domain. Do this by your standard procedure using `ipa-client-install`.
-5. Create a service account in the Kerberos realm for the Satellite server.
+
+Prepare Satellite for IdM DNS Control
+-------------------------------------
+
+1. Create a service account in the Kerberos realm for the Satellite server.
   ```bash
   ipa service-add capsule/sputnik.lab.rmkra.us
   ```
-6. Create a Keytab file for this account.
+2. Create a Keytab file for this account.
    ```bash
    ipa-getkeytab -p capsule/sputnik.lab.rmkra.us@LAB.RMKRA.US \
    -s ipa.lab.rmkra.us -k /etc/foreman-proxy/dns.keytab
 
    chown foreman-proxy:foreman-proxy /etc/foreman-proxy/dns.keytab
    ```
-7. Open firewall ports.
+3. Open firewall ports.
    ```bash
    firewall-cmd \
    --add-port="53/udp" --add-port="53/tcp" \
@@ -50,6 +54,22 @@ Chapter 1 of the [installation manual](https://access.redhat.com/documentation/e
    --add-port="9090/tcp"
 
    firewall-cmd --runtime-to-permanent
+   ```
+
+Prepare Satellite for IdM Realm Control
+---------------------------------------
+
+Satellite is able to automatically join hosts to the IdM realm on provisioning. This is how to enable that functionality.
+
+1. Install the the IdM admin tools.
+   ```bash
+   foreman-maintain packages install ipa-admintools
+   ```
+2. Have Satellite setup an IdM account to use for joining clients to the realm.
+   ```bash
+   foreman-prepare-realm admin realm-capsule
+   mv /root/freeipa.keytab /etc/foreman-proxy
+   chown foreman-proxy:foreman-proxy /etc/foreman-proxy/freeipa.keytab
    ```
 
 Install Satellite
@@ -92,6 +112,14 @@ Chapter 2 of the [installation manual](https://access.redhat.com/documentation/e
        # I have some IPMI servers, so I enable this
        bmc: true
        bmc_default_provider: ipmitool
+       # ...
+       # Configure IdM realm support
+       realm: true
+       realm_listen_on: https
+       realm_provider: freeipa
+       realm_keytab: /etc/foreman-proxy/freeipa.keytab
+       realm_principal: realm-capsule@LAB.RMKRA.US
+       # ...
    foreman_proxy::plugin::discovery:
        install_images: true
    # ...
@@ -187,3 +215,4 @@ Sources
   - [Satellite Installation Manual](https://access.redhat.com/documentation/en-us/red_hat_satellite/6.6/html/installing_satellite_server_from_a_connected_network/index)
   - [Configuring Satellite or Capsule with External IdM DNS](https://access.redhat.com/documentation/en-us/red_hat_satellite/6.6/html/installing_satellite_server_from_a_connected_network/configuring_external_services#configuring_satellite_external_idm_dns)
   - [Configuring the Satellite Discovery Plugin](https://access.redhat.com/documentation/en-us/red_hat_satellite/6.6/html/managing_hosts/chap-red_hat_satellite-managing_hosts-discovering_bare_metal_hosts_on_satellite#sect-Red_Hat_Satellite-Managing_Hosts-Discovering_Bare_metal_Hosts_on_Satellite-Configuring_the_Satellite_Discovery_Plug_in)
+  - [External Authentication for Provisioned Hosts](https://access.redhat.com/documentation/en-us/red_hat_satellite/6.2/html/server_administration_guide/sect-red_hat_satellite-server_administration_guide-configuring_external_authentication-external_authentication_for_provisioned_hosts)
