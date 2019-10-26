@@ -20,7 +20,6 @@ Chapter 1 of the [installation manual](https://access.redhat.com/documentation/e
 1. Ensure there is 500 GB available at `/var/lib/pulp`.
 2. Attach the system to your Red Hat account and assign it a Satellite entitlement.
 3. Attach the proper repositories. **NOTE:** Do not attach the EPEL, it will break the install process.
-
   ```bash
   subscription-manager repos --enable=rhel-7-server-rpms \
   --enable=rhel-server-rhscl-7-rpms \
@@ -28,25 +27,19 @@ Chapter 1 of the [installation manual](https://access.redhat.com/documentation/e
   --enable=rhel-7-server-satellite-maintenance-6-rpms \
   --enable=rhel-7-server-ansible-2.8-rpms
   ```
-
 4. Join the Satellite server to your IPA Domain. Do this by your standard procedure using `ipa-client-install`.
 5. Create a service account in the Kerberos realm for the Satellite server.
-
   ```bash
   ipa service-add capsule/sputnik.lab.rmkra.us
   ```
-
 6. Create a Keytab file for this account.
-
   ```bash
   ipa-getkeytab -p capsule/sputnik.lab.rmkra.us@LAB.RMKRA.US \
   -s ipa.lab.rmkra.us -k /etc/foreman-proxy/dns.keytab
 
   chown foreman-proxy:foreman-proxy /etc/foreman-proxy/dns.keytab
   ```
-
 7. Open firewall ports.
-
   ```bash
   firewall-cmd \
   --add-port="53/udp" --add-port="53/tcp" \
