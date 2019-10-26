@@ -64,87 +64,88 @@ Install Satellite
 
 Chapter 2 of the [installation manual](https://access.redhat.com/documentation/en-us/red_hat_satellite/6.6/html/installing_satellite_server_from_a_connected_network/index) covers the basic install procedure for a connected install. Refer there for the full version, but here is the short version.
 
-  1. Download the installation packages.
+1. Download the installation packages.
 
-    ```bash
-    yum install satellite
-    ```
-  2. Create an answer file to specify how Satellite should be installed.
+  ```bash
+  yum install satellite
+  ```
 
-    ```bash
-    cp /etc/foreman-installer/scenarios.d/satellite-answers.yaml \
-    /etc/foreman-installer/scenarios.d/my-answer-file.yaml
-    ```
+2. Create an answer file to specify how Satellite should be installed.
 
-  3. Edit the answer file to cover your desired install options. A couple of important ones are noted here, but look at them all.
+  ```bash
+  cp /etc/foreman-installer/scenarios.d/satellite-answers.yaml \
+  /etc/foreman-installer/scenarios.d/my-answer-file.yaml
+  ```
 
-    ```yaml
-    # ...
-    foreman_proxy:
-        # ...
-        # Enable tftp for PXE booting
-        tftp: true  
-        # ...
-        # I don't use Satellite for DHCP in my environment, you can, though
-        dhcp: false
-        # ...
-        # Tell Satellite to send DNS updates to IdM
-        dns: true
-        dns_provider: nsupdate_gss
-        dns_interface: primary
-        dns_zone: lab.rmkra.us
-        dns_reverse: 4.168.192.in-addr.arpa
-        dns_server: ipa.lab.rmkra.us
-        dns_ttl: 86400
-        dns_tsig_keytab: /etc/foreman-proxy/dns.keytab
-        dns_tsig_principal: capsule/sputnik.lab.rmkra.us@LAB.RMKRA.US
-        dns_forwarders: []
-        # ...
-        # I have some IPMI servers, so I enable this
-        bmc: true
-        bmc_default_provider: ipmitool
-    foreman_proxy::plugin::discovery:
-        install_images: true
-    # ...
-    ```
+3. Edit the answer file to cover your desired install options. A couple of important ones are noted here, but look at them all.
 
-  4. Tell the installer to use your custom answers file by editing `/etc/foreman-installer/scenarios.d/satellite.yml` and editing the answers file line.
+  ```yaml
+  # ...
+  foreman_proxy:
+      # ...
+      # Enable tftp for PXE booting
+      tftp: true  
+      # ...
+      # I don't use Satellite for DHCP in my environment, you can, though
+      dhcp: false
+      # ...
+      # Tell Satellite to send DNS updates to IdM
+      dns: true
+      dns_provider: nsupdate_gss
+      dns_interface: primary
+      dns_zone: lab.rmkra.us
+      dns_reverse: 4.168.192.in-addr.arpa
+      dns_server: ipa.lab.rmkra.us
+      dns_ttl: 86400
+      dns_tsig_keytab: /etc/foreman-proxy/dns.keytab
+      dns_tsig_principal: capsule/sputnik.lab.rmkra.us@LAB.RMKRA.US
+      dns_forwarders: []
+      # ...
+      # I have some IPMI servers, so I enable this
+      bmc: true
+      bmc_default_provider: ipmitool
+  foreman_proxy::plugin::discovery:
+      install_images: true
+  # ...
+  ```
 
-    ```yaml
-    :answer_file: /etc/foreman-installer/scenarios.d/my-answer-file.yaml
-    ```
+4. Tell the installer to use your custom answers file by editing `/etc/foreman-installer/scenarios.d/satellite.yml` and editing the answers file line.
 
-  5. Install Satellite
+  ```yaml
+  :answer_file: /etc/foreman-installer/scenarios.d/my-answer-file.yaml
+  ```
 
-    ```bash
-    satellite-installer --scenario satellite
-    ```
+5. Install Satellite
 
-  6. Change the admin password. I don't like hardcoding it into the answers file.
+  ```bash
+  satellite-installer --scenario satellite
+  ```
 
-    ```bash
-    foreman-rake permissions:reset
-    ```
+6. Change the admin password. I don't like hardcoding it into the answers file.
+
+  ```bash
+  foreman-rake permissions:reset
+  ```
 
 Enable Bare Metal Discovery
 ---------------------------
 
-  1. Install discovery PXE images.
+1. Install discovery PXE images.
 
-    ```bash
-    foreman-maintain package install foreman-discovery-image
-    ```
+  ```bash
+  foreman-maintain package install foreman-discovery-image
+  ```
 
-  2. Set Discovery options in `Administer` -> `Settings` -> `Discovered` tab
-    - Discovery location
-    - Discovery organization
+2. Set Discovery options in `Administer` -> `Settings` -> `Discovered` tab
+  - Discovery location
+  - Discovery organization
 
-  3. Set auto discover to be the default behavior for unknown hosts in `Administer` -> `Settings` -> `Provisioning` tab
-    - Default PXE global template entry: discovery
+3. Set auto discover to be the default behavior for unknown hosts in `Administer` -> `Settings` -> `Provisioning` tab
+  - Default PXE global template entry: discovery
 
-  4. Build default PXE template.
-    1. In the UI, go to `Hosts` -> `Provisioning Templates`
-    2. Click `Build PXE Default`
+4. Build default PXE template.
+  1. In the UI, go to `Hosts` -> `Provisioning Templates`
+  2. Click `Build PXE Default`
 
 Configure Satellite
 -------------------
@@ -153,39 +154,39 @@ Login to the GUI and do all the basic configuration. Load a manifest, sync repos
 
 The following are the settings required for configuring authentication back to IdM and making an IdM group called `admin` map to a Satellite group called `Admins` that grants administrative access to Satellite.
 
-  1. In the Satellite GUI, go to `Administer` -> `LDAP Authentication`
-  2. Click `Create LDAP Source`
-    1. Answers for the `LDAP server` tab:
-      - Name: Whatever you'd like
-      - Server: ipa.lab.rmkra.us
-      - LDAPS: Checked
-      - Port: 636
-      - Server type: FreeIPA
-    2. `Account` tab:
-      - Account Username: uid=SERVICE,cn=users,cn=accounts,dc=lab,dc=rmkra,dc=us
-      - Account Password: The associated password
-      - Base DN: cn=users,cn=accounts,dc=lab,dc=rmkra,dc=us
-      - Groups base DN: cn=groups,cn=accounts,dc=lab,dc=rmkra,dc=us
-      - Automatically Create Accounts in Satellite: Checked
-      - Usergroup Sync: Checked
-    3. `Attribute mappings` tab:
-      - Login Name Attribute: uid
-      - First Name Attribute: givenName
-      - Surname Attribute: sn
-      - Email Address Attribute: mail
-    4. Click `Submit`
-  3. In the Satellite GUI, go to `Administer` -> `User Groups`
-  4. Click `Create User Group`
-    1. `User Group` tab:
-      - Name: Admins
-    2. `Roles` tab:
-      - Administrator: Checked
-    3. `External Groups` tab:
-      - Click `+ Add external user group`
-      - Name: admins
-      - Auth Source: LDAP-ipa.lab.rmkra.us
-    4. Click `Submit`
-  5. Log out and log back in with your standard account.
+1. In the Satellite GUI, go to `Administer` -> `LDAP Authentication`
+2. Click `Create LDAP Source`
+  1. Answers for the `LDAP server` tab:
+    - Name: Whatever you'd like
+    - Server: ipa.lab.rmkra.us
+    - LDAPS: Checked
+    - Port: 636
+    - Server type: FreeIPA
+  2. `Account` tab:
+    - Account Username: uid=SERVICE,cn=users,cn=accounts,dc=lab,dc=rmkra,dc=us
+    - Account Password: The associated password
+    - Base DN: cn=users,cn=accounts,dc=lab,dc=rmkra,dc=us
+    - Groups base DN: cn=groups,cn=accounts,dc=lab,dc=rmkra,dc=us
+    - Automatically Create Accounts in Satellite: Checked
+    - Usergroup Sync: Checked
+  3. `Attribute mappings` tab:
+    - Login Name Attribute: uid
+    - First Name Attribute: givenName
+    - Surname Attribute: sn
+    - Email Address Attribute: mail
+  4. Click `Submit`
+3. In the Satellite GUI, go to `Administer` -> `User Groups`
+4. Click `Create User Group`
+  1. `User Group` tab:
+    - Name: Admins
+  2. `Roles` tab:
+    - Administrator: Checked
+  3. `External Groups` tab:
+    - Click `+ Add external user group`
+    - Name: admins
+    - Auth Source: LDAP-ipa.lab.rmkra.us
+  4. Click `Submit`
+5. Log out and log back in with your standard account.
 
 Configure IdM
 -------------
