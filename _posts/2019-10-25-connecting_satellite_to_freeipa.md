@@ -40,17 +40,17 @@ Chapter 1 of the [installation manual](https://access.redhat.com/documentation/e
    chown foreman-proxy:foreman-proxy /etc/foreman-proxy/dns.keytab
    ```
 7. Open firewall ports.
-  ```bash
-  firewall-cmd \
-  --add-port="53/udp" --add-port="53/tcp" \
-  --add-port="67/udp" --add-port="69/udp" \
-  --add-port="80/tcp"  --add-port="443/tcp" \
-  --add-port="5000/tcp" --add-port="5647/tcp" \
-  --add-port="8000/tcp" --add-port="8140/tcp" \
-  --add-port="9090/tcp"
+   ```bash
+   firewall-cmd \
+   --add-port="53/udp" --add-port="53/tcp" \
+   --add-port="67/udp" --add-port="69/udp" \
+   --add-port="80/tcp"  --add-port="443/tcp" \
+   --add-port="5000/tcp" --add-port="5647/tcp" \
+   --add-port="8000/tcp" --add-port="8140/tcp" \
+   --add-port="9090/tcp"
 
-  firewall-cmd --runtime-to-permanent
-  ```
+   firewall-cmd --runtime-to-permanent
+   ```
 
 Install Satellite
 -----------------
@@ -58,84 +58,69 @@ Install Satellite
 Chapter 2 of the [installation manual](https://access.redhat.com/documentation/en-us/red_hat_satellite/6.6/html/installing_satellite_server_from_a_connected_network/index) covers the basic install procedure for a connected install. Refer there for the full version, but here is the short version.
 
 1. Download the installation packages.
-
-  ```bash
-  yum install satellite
-  ```
-
+   ```bash
+   yum install satellite
+   ```
 2. Create an answer file to specify how Satellite should be installed.
-
-  ```bash
-  cp /etc/foreman-installer/scenarios.d/satellite-answers.yaml \
-  /etc/foreman-installer/scenarios.d/my-answer-file.yaml
-  ```
-
+   ```bash
+   cp /etc/foreman-installer/scenarios.d/satellite-answers.yaml \
+   /etc/foreman-installer/scenarios.d/my-answer-file.yaml
+   ```
 3. Edit the answer file to cover your desired install options. A couple of important ones are noted here, but look at them all.
-
-  ```yaml
-  # ...
-  foreman_proxy:
-      # ...
-      # Enable tftp for PXE booting
-      tftp: true  
-      # ...
-      # I don't use Satellite for DHCP in my environment, you can, though
-      dhcp: false
-      # ...
-      # Tell Satellite to send DNS updates to IdM
-      dns: true
-      dns_provider: nsupdate_gss
-      dns_interface: primary
-      dns_zone: lab.rmkra.us
-      dns_reverse: 4.168.192.in-addr.arpa
-      dns_server: ipa.lab.rmkra.us
-      dns_ttl: 86400
-      dns_tsig_keytab: /etc/foreman-proxy/dns.keytab
-      dns_tsig_principal: capsule/sputnik.lab.rmkra.us@LAB.RMKRA.US
-      dns_forwarders: []
-      # ...
-      # I have some IPMI servers, so I enable this
-      bmc: true
-      bmc_default_provider: ipmitool
-  foreman_proxy::plugin::discovery:
-      install_images: true
-  # ...
-  ```
-
+   ```yaml
+   # ...
+   foreman_proxy:
+       # ...
+       # Enable tftp for PXE booting
+       tftp: true  
+       # ...
+       # I don't use Satellite for DHCP in my environment, you can, though
+       dhcp: false
+       # ...
+       # Tell Satellite to send DNS updates to IdM
+       dns: true
+       dns_provider: nsupdate_gss
+       dns_interface: primary
+       dns_zone: lab.rmkra.us
+       dns_reverse: 4.168.192.in-addr.arpa
+       dns_server: ipa.lab.rmkra.us
+       dns_ttl: 86400
+       dns_tsig_keytab: /etc/foreman-proxy/dns.keytab
+       dns_tsig_principal: capsule/sputnik.lab.rmkra.us@LAB.RMKRA.US
+       dns_forwarders: []
+       # ...
+       # I have some IPMI servers, so I enable this
+       bmc: true
+       bmc_default_provider: ipmitool
+   foreman_proxy::plugin::discovery:
+       install_images: true
+   # ...
+   ```
 4. Tell the installer to use your custom answers file by editing `/etc/foreman-installer/scenarios.d/satellite.yml` and editing the answers file line.
-
-  ```yaml
-  :answer_file: /etc/foreman-installer/scenarios.d/my-answer-file.yaml
-  ```
-
+   ```yaml
+   :answer_file: /etc/foreman-installer/scenarios.d/my-answer-file.yaml
+   ```
 5. Install Satellite
-
-  ```bash
-  satellite-installer --scenario satellite
-  ```
-
+   ```bash
+   satellite-installer --scenario satellite
+   ```
 6. Change the admin password. I don't like hardcoding it into the answers file.
-
-  ```bash
-  foreman-rake permissions:reset
-  ```
+   ```bash
+   foreman-rake permissions:reset
+   ```
 
 Enable Bare Metal Discovery
 ---------------------------
 
 1. Install discovery PXE images.
-
-  ```bash
-  foreman-maintain package install foreman-discovery-image
-  ```
-
+   ```bash
+   foreman-maintain package install foreman-discovery-image
+   ```
 2. Set Discovery options in `Administer` -> `Settings` -> `Discovered` tab
   - Discovery location
   - Discovery organization
-
 3. Set auto discover to be the default behavior for unknown hosts in `Administer` -> `Settings` -> `Provisioning` tab
   - Default PXE global template entry: discovery
-
 4. Build default PXE template.
   1. In the UI, go to `Hosts` -> `Provisioning Templates`
   2. Click `Build PXE Default`
