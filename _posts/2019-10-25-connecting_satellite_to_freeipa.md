@@ -33,12 +33,12 @@ Chapter 1 of the [installation manual](https://access.redhat.com/documentation/e
   ipa service-add capsule/sputnik.lab.rmkra.us
   ```
 6. Create a Keytab file for this account.
-  ```bash
-  ipa-getkeytab -p capsule/sputnik.lab.rmkra.us@LAB.RMKRA.US \
-  -s ipa.lab.rmkra.us -k /etc/foreman-proxy/dns.keytab
+   ```bash
+   ipa-getkeytab -p capsule/sputnik.lab.rmkra.us@LAB.RMKRA.US \
+   -s ipa.lab.rmkra.us -k /etc/foreman-proxy/dns.keytab
 
-  chown foreman-proxy:foreman-proxy /etc/foreman-proxy/dns.keytab
-  ```
+   chown foreman-proxy:foreman-proxy /etc/foreman-proxy/dns.keytab
+   ```
 7. Open firewall ports.
   ```bash
   firewall-cmd \
