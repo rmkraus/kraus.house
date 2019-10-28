@@ -17,16 +17,18 @@ First, you'll want to add your RHV cluster to your Satellite server as a Compute
 1. Navigate to `Infrastructure` -> `Compute Resources`
 2. Click `Create new resource`
 3. On the `Compute Resources` tab:
-| Field | Value |
-|-------|--------|
-| Name | Something usefule to you |
-| Provider | RHV |
-| URL | https://rhv.lab.rmkra.us/ovirt-engine/api |
-| Use APIv4 | I recommend yes |
-| Username | USER@AUTH_METHOD |
-| Password | PASSWORD |
-| Datacenter | Select one after clicking `Test Connection` |
-| Quota ID | Default |
+
+    | Field | Value |
+    |-------|--------|
+    | Name | Something usefule to you |
+    | Provider | RHV |
+    | URL | https://rhv.lab.rmkra.us/ovirt-engine/api |
+    | Use APIv4 | I recommend yes |
+    | Username | USER@AUTH_METHOD |
+    | Password | PASSWORD |
+    | Datacenter | Select one after clicking `Test Connection` |
+    | Quota ID | Default |
+
 4. Fill out the `Locations` and `Organizations` tabs as you see fit
 5. Click `Submit`
 6. Select your new compute resource from the list
