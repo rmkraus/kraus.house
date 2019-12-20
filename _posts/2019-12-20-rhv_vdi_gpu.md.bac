@@ -1,0 +1,466 @@
+---
+layout: post
+title:  "Create a VDI Solution with Red Hat Virtualization and Scyld Cloud Workstation"
+date:   2019-12-18 16:00:00 +0500
+categories: [homelab, ovirt, scw, vdi]
+---
+
+As computation workloads become more data intensive, the need for keeping
+computing in the data center is increasing. Virtual Desktop Infrastructure
+(VDI) is a solution that allows a workstation experience to be hosted in a data
+center and accessed remotely by clients. This allows pre and post processing of
+the data to occur without being concerned with data migration.
+
+In addition to easing data processing constraints, VDI also increases security
+by allowing all data to stay in the data center, behind a firewall. Company
+sensitive data no longer needs to live on every laptop and travel around the
+world.
+
+In this blog post we will build a full VDI system using Red Hat Virtualization
+(RHV) and Scyld Cloud Workstation (SCW) from Penguin Computing. Both of these
+solutions are extremely robust and affordable, significantly reducing the cost
+when compared to traditional VDI solutions.
+
+Overview
+--------
+
+To create this solution, the following steps will be followed. It is assumed
+that you already have a functional RHV cluster.
+
+1. If you intend on configuring GPU enabled nodes, [ensure RHV Hosts are
+   configured for GPU Passthrough](#enable-gpu-passthrough-on-rhv-hosts).
+2. [Create a virtual machine in RHV and use it to create a
+   template](#create-a-baseline-vm-and-generate-template).
+3. [Create the virtual machine pool](#create-a-virtual-machine-pool).
+4. [Setup DNS and DHCP for the virtual machines in the
+   pool](#setup-dhcp-and-dns).
+5. [Configure an LDAP user group to access the virtual machine
+   pool](#configure-rbac).
+
+Enable GPU Passthrough on RHV Hosts
+-----------------------------------
+
+To do this, you'll need to first identify the PCI address of the GPU's on the
+host. This information can be found in the RHV Management Portal. Navigate to
+`Compute` -> `Hosts` and select the host on which you would like to operate. Go
+to the `Host Devices` tab and find the GPU you would like to pass to virtual
+machines. Take note of the Vendor ID and Product ID.
+
+Click the `Edit` button in the top menu bar to change the host's configuration.
+On the `Kernel` tab, add a `Kernel command line` entry like the following:
+
+```
+intel_iommu=on pci-stub.ids=1a03:2000 rdblacklist=nouveau,ast
+```
+
+  * `intel_iommu` enables Hostdev passthrough and SR-IOV
+  * `pci-stub.ids` is a comma separated list of the PCI address for the GPUs.
+    They are of the format `VENDOR_ID:PRODUCT_ID,VENDOR_ID:PRODUCT_ID,...`.
+  * `rdblacklist` will blacklist Kernel modules. The idea is to blacklist any
+    video drivers that may boot before the pci-stub driver to prevent
+    conflicts.
+
+Save this entry, put the host in management, and run a reinstallation on the
+host. After the reinstallation, restart the node. When the node comes back up,
+you'll want to verify that the PCI Stub driver has claimed the GPU.
+
+```bash
+# lspci -nnk
+...
+07:00.0 VGA compatible controller [0300]: ASPEED Technology, Inc. ASPEED Graphics Family [1a03:2000] (rev 30)
+        Subsystem: Super Micro Computer Inc Device [15d9:086d]
+        Kernel driver in use: pci-stub
+        Kernel modules: ast
+...
+```
+
+Create a Baseline VM and Generate a Template
+--------------------------------------------
+
+Create Baseline VM
+==================
+
+Using whatever standard procedure you typically use, create a new RHEL 7
+virtual machine. Configure this virtual machine the way you would configure a
+workstation. Be sure to install the GNOME packages.
+
+Since no boot time system initialization will be required, it is best to
+remove the `firstboot` and `gnome-initial-setup` packages.
+
+```bash
+# yum remove -y firstboot gnome-initial-setup
+```
+
+For a better VDI workflow, you'll likely want virtual machines to be released
+back to the pool when a user logs out of the virtual machine. That is not the
+default behavior, but we can achieve this by having the virtual machine
+shutdown when a Gnome session ends. This can be done by putting a small script
+in the file `/etc/gdm/PostSession/Default`.
+
+```bash
+# cat /etc/gdm/PostSession/Default
+#!/bin/sh
+
+function stop() {
+        /usr/bin/sleep 10
+        /usr/sbin/shutdown -h now
+}
+
+export -f stop
+/usr/bin/nohup /bin/bash -c stop &> /dev/null &
+
+exit 0
+```
+
+Ensure the network interface uses DHCP to boot. This is a requirement of VM
+Pools. If the IP address was hardcoded, every VM in the pool would come up with
+the same IP address causing conflicts. Ensure that `ipv4.dhcp-send-hostname` is
+also set to `no` so the hostname will be update on boot.
+
+```bash
+# nmcli con sh 'System eth0'
+...
+ipv4.method:                            auto
+ipv4.dns:                               --
+ipv4.dns-search:                        --
+ipv4.dns-options:                       ""
+ipv4.dns-priority:                      0
+ipv4.addresses:                         --
+ipv4.gateway:                           --
+ipv4.routes:                            --
+ipv4.route-metric:                      -1
+ipv4.route-table:                       0 (unspec)
+ipv4.routing-rules:                     --
+ipv4.ignore-auto-routes:                no
+ipv4.ignore-auto-dns:                   no
+ipv4.dhcp-client-id:                    --
+ipv4.dhcp-timeout:                      0 (default)
+ipv4.dhcp-send-hostname:                no
+ipv4.dhcp-hostname:                     --
+ipv4.dhcp-fqdn:                         --
+ipv4.never-default:                     no
+ipv4.may-fail:                          yes
+ipv4.dad-timeout:                       -1 (default)
+...
+```
+
+To improve the overall RHV experience, ensure the guest agent is installed.
+
+```bash
+# yum install -y ovirt-guest-agent
+```
+
+Install Scyld Cloud Workstation
+===============================
+
+Obtain the SCW server RPM for el7 from Penguin Computing along with your
+license. Install the SCW rpm on your template VM and configure your
+license/license server per the instructions provided by Penguin.
+
+The SCW server configuration can be found at
+`/opt/scyld-cloud-workstation/sycld-cloud-workstation.xml`. In this file,
+you'll want to enable OS Authentication. It is also useful to limit video
+bitrates and redirect the HTTP port for a better overall experience.
+
+Below is
+the configuration used for this documentation.
+
+```bash
+# cat /opt/scyld-cloud-workstation/scyld-cloud-workstation.xml
+<config>
+  <Server>
+    <RedirectHTTPPort>true</RedirectHTTPPort>
+    <Auth>
+      <OSAuthEnabled>true</OSAuthEnabled>
+      <Username>admin</Username>
+      <ShadowPassword>REDACTED</ShadowPassword>
+      <MinPasswordLength>12</MinPasswordLength>
+    </Auth>
+    <Video>
+      <IntraRefresh>false</IntraRefresh>
+      <AvgBitRate>1280x720=5000k,1920x1080=10000k</AvgBitRate>
+    </Video>
+  </Server>
+  <openSSL>
+    <server>
+      <privateKeyFile>signedKey.pem</privateKeyFile>
+      <certificateFile>signedCert.pem</certificateFile>
+      <requireTLSv1_2>true</requireTLSv1_2>
+    </server>
+  </openSSL>
+</config>
+```
+
+You'll need to open ports for HTTP and HTTPS traffic through the system
+firewall.
+
+```bash
+firewall-cmd --add-service http
+firewall-cmd --add-service https
+firewall-cmd --add-service http --permanent
+firewall-cmd --add-service https --permanent
+```
+
+Finally, make sure the `scyld-cloud-workstation` service is running/enabled.
+
+```bash
+systemctl enable scyld-cloud-workstation --now
+```
+
+SSL Certificates
+================
+
+For a production deployment, signed SSL certificates should be used for Scyld
+Cloud Workstation. This is slightly difficult since all of the virtual machines
+will be identical, but have different hostnames. The easiest way to handle this
+is to group all the SCW machines into a dedicated subdomain. A wildcard SSL
+cert can then be generated for this subdomain and loaded onto the virtual
+machines. The SCW configuration from the previous step points to these signed
+certificate files.
+
+In this example, I will be creating virtual machines with hostnames like
+`standard-001.scw.lab.rmkra.us` and `gpu-001.scw.lab.rmkra.us`. For these I
+have generated an SSL certificate that is valid for `*.scw.lab.rmkra.us`.
+
+Persistent Storage
+==================
+
+Once the virtual machine pool is created, all of the VMs will be entirely
+ephemeral. That means you'll need remote drives mounted for persistent storage.
+Chances are, you already have a standard set of drives that your enterprise
+mounts. My recomendation is to, at a minimum, mount remove home directories
+(`/home`) and mount an additional target for general data/project purposes
+(something like `/data`).
+
+High Availability
+=================
+
+Make sure that VM High Availability is turned off in RHV. This is done by
+editing the VM record in the RHV management interface. High Availability does
+not work on stateless virtual machines and is not a good model for managing
+ephemeral desktops like this.
+
+Create Template
+===============
+
+Once the workstation image has been created to your satisfaction, shut it down.
+Log into the RHV Virtualization Manager and navigate to `Compute` -> `Virtual
+Machines`. Select the template VM from the list, and click the expand menu
+ellipses in the top right of the view. Click the `Make Template` button. Give
+the template an appropriate name and check the `Seal Template` option. Sealing
+the template will, among other things, remove the Root user's SSH keys and
+remove any Red Hat entitlements.
+
+Create a Virtual Machine Pool
+-----------------------------
+
+Now that a template exists, we can create our VM Pool. The Pool is what will
+handle most of the management and all of the scheduling of our VDI machines.
+When an end user would like a VDI session, they will request a VM from the
+pool. One of the VMs in the pool will be scheduled to them. When that VM is
+shutdown, it will be returned to the pool and restored to its starting point.
+
+To create the pool, in the RHV mangement interface, navigate to `Compute` ->
+`Pools`. Click the `New` button at the top right of the view.
+
+In the `General` tab, ensure the correct template is selected. Also make sure
+that `Optimized for` is set to `Desktop`. In the name field, input a formatting
+string that will be used to generate the VM names. I like to ensure the VM
+names are the same as the FQDN so I used `small-???.scw.lab.rmkra.us`. You can
+populate a description and comment if you with. Set the `Number of VMs` to the
+total number of virtual machines you would like to be available in this pool.
+Set `Prestarted VMs` to a number 1 or larger. The virtual machines will take a
+minute to start up once requested. Prestarting a few virtual machines will
+improve end user experience, but ultimately increase resource utilization. Also
+set `Maximum number of VMs per user` to zero. We will increase this later.
+**Do not** check `Delete Protection`.
+
+On the `System` tab, ensure the memory and CPU values are set to your liking.
+Note, it is possible to have a few VM Pools with different VM sizes that all
+refer to the same VM template. You can use this to offer t-shirt sizes: small,
+medium, large.
+
+On the `Type` tab, make sure the `Pool Type` is `Automatic` and that `Stateful
+Pool` is not checked. This allows VMs to be returned to the pool when shutdown
+and rewinds changes before putting back into the pool.
+
+On `Initial Run`, make sure `Use Cloud-Init/Sysprep` is not checked. I have
+found cloud-init to interfere with GPU assignment and prefer not to use it.
+
+On the `Boot Options` tab, ensure the first boot device is the `Hard Disk`. You
+do not need a second boot device.
+
+On the `Icon` tab, upload an icon to represent this pool and its associted VMs.
+This is not required, but it makes a big difference with user experience. I
+like to use the following icon for SCW.
+
+![SCW Icon](https://raw.githubusercontent.com/rmkraus/rmkra.us/master/static/img/_posts/penguin_scw.png)
+
+Verify all your settings before clicking `OK`. Most of these options cannot be
+changed once the pool is created. After creation, you can scale the number of
+vms and change the number of prestarted vms, but most other options become
+locked.
+
+When you are happy with your selections, click `OK`. Once you do, you'll notice
+RHV start to create all of the pool VMs in the `Compute` -> `Virtual Machines`
+view. Wait for them to finish creating and for the number of prestarted VMs to
+start.
+
+Setup DHCP and DNS
+------------------
+
+This section will be fairly site specific based on how you manage DHCP and DNS
+for your environment. I highly recomend using DHCP for IP address assignment.
+If your network does not use DHCP, I would recommend creating a dedicated
+subnet that does have DHCP just for these workstation images.
+
+Setup DHCP
+==========
+
+Each VM will be assigned a MAC address once it is created. From the `Virtual
+Machine` view, pull out these MAC addreses and add them to your DHCP
+configuration to be assigned static IP addresses. I use the standard ISC DHCP
+server that ships with RHEL 7. The host configuration I used looks like this.
+
+```
+host scw-small-1 {
+	hardware ethernet 56:6f:c7:2e:00:05;
+	fixed-address 192.168.4.201;
+}
+host scw-small-2 {
+	hardware ethernet 56:6f:c7:2e:00:06;
+	fixed-address 192.168.4.202;
+}
+host scw-small-3 {
+	hardware ethernet 56:6f:c7:2e:00:07;
+	fixed-address 192.168.4.203;
+}
+host scw-small-4 {
+	hardware ethernet 56:6f:c7:2e:00:09;
+	fixed-address 192.168.4.204;
+}
+host scw-small-5 {
+	hardware ethernet 56:6f:c7:2e:00:0b;
+	fixed-address 192.168.4.205;
+}
+```
+
+Setup DNS
+=========
+
+In your DNS system match the assigned IP addresses to their desired hostnames.
+I find it is best to match these to the VM names created while creating the
+pool. I use Red Hat IdM for my primary DNS server. My forward entries look like
+the following.
+
+![Forward DNS Records](https://raw.githubusercontent.com/rmkraus/rmkra.us/master/static/img/_posts/scw_dns_forward.png)
+
+The following are my reverse DNS entries.
+
+![Reverse DNS Records](https://raw.githubusercontent.com/rmkraus/rmkra.us/master/static/img/_posts/scw_dns_reverse.png)
+
+Prestart VMs
+============
+
+You should now be ready to begin powering on your Pool VMs. Navigate to
+`Compute` -> `Pools` and edit the pool you just created. Change the `Prestarted
+VMs` to any number greater than zero. The virtual machines will take a minute
+or two to start up and having some prestarted will greatly improve customer
+experience. However, starting up too many can result in wasted resources. Find
+the right balance for you to meet customer demand without wasting resources.
+For now, you can set this to one and increase it later if needed.
+
+RHV will now begin launching a VM. Depending, mostly, on the speed of your
+backend storage, this will take a minute or two because RHV has to take
+snapshots of the VM before starting it.
+
+Extra Credit
+============
+
+Obviously the manual process of entering DHCP and DNS entries when scaling the
+VM Pool is far from ideal. At the moment, I will leave this as an excercise to
+the reader, but this task is perfect for Ansible automation.  A cron job can,
+and probably should, run in Ansible Tower to keep all these systems in sync.
+The script should be fairly easy to write.
+
+Configure RBAC
+--------------
+
+Your RHV cluster should already be configured to authenticate against a central
+LDAP server like AD or Red Hat IdM. The ideal scenario would be to use LDAP
+groups to control user access to this virtual machine pool. You could create
+multiple groups that can access the different t-shirt sizes. I wont cover that
+in detail, but it is just a repitition of the same process.
+
+First, create your group in LDAP. I will be using a group named `scw`. Any user
+in the `scw` group will be given access to this resource. Once the group is in
+LDAP, you'll add it to RHV. Go to `Administration` -> `Users` and click the
+`Add` button. Select the `Group` radio button, set `Search` to your LDAP auth
+domain, and search for your group. If the group is found, it should appear in
+the selection box. Select your group and click `Add and Close`.
+
+To grant this new group access to the virtual machine pool, navigate to
+`Compute` -> `Pools`. Select your new VM pool from the view and go to the
+`Permissions` tab. Click the `Add` button at the top right of this view. Select
+`My Groups` radio button at the top and select your group from the selection
+window. Ensure that `Role to Assign` is set to `UserRole` then hit `OK`.
+
+Cluster and Pool Patching
+-------------------------
+
+Patching ease is one of the great benefits of ephemeral VM pools. Instead of
+patching and verifying each machine/workstation seperately, patching only needs
+to be completed once.
+
+Cluster Patching
+================
+
+The RHV cluster may continue to be patched and managed as it was before. CPU
+based SCW instances can be safely migrated between hosts. The only special
+consideration needs to be for GPU/vGPU enabled virutal machines. If a VM is
+tied to a GPU/vGPU, it cannot be migrated. These should be shutdown before
+patching begins or the hypervisors will fail to move into maintenance mode.
+
+Pool Patching
+=============
+
+To patch the virtual machines in the pool, first power on the VM used to
+generate the template. Connect to this machine and make any necessary
+configuration or software updates. Once these changes are complete, shutdown
+the VM and use the `Make Template` button to publish a new version.
+
+In about the middle of the `New Template` form, there is a check box labled
+`Create as a Template Sub-Version`, check this box. Select the appropriate root
+template and then give this new version a name. I like to use a naming
+convention that is YYMMDDXX where x is simply a counter starting at one
+everday. So I may create a new version labeled `19121801` which means that it
+is the first version I created on December 18, 2019. Check the `Seal Template`
+box and select `OK`. This will start the template creation process.
+
+Now you need to edit the Pool to reference the new template version. Go to
+`Compute` -> `Pools` and edit the desired pool. In the `General` tab, change
+the `Template` field to point to the newest version you published and click
+`OK`.
+
+At this point, anytime a VM is created, it will be created with the newest
+image. However, any running VMs will not be updated. This includes preallocated
+VMs. To force an update to these machines, they must be shutdown. You can
+either allow users to shutdown their instances at their own convenience or you
+can initiate a shutdown from the RHV Manager. Any hosts that have not been
+restarted since the change will show a pending change notification in the
+manager.
+
+![Pending Update Notification](https://raw.githubusercontent.com/rmkraus/rmkra.us/master/static/img/_posts/scw_pending_update.png)
+
+
+Backup and Recovery Considerations
+----------------------------------
+
+Multiple Pool User Quotas
+-------------------------
+
+Sources
+-------
+
+  1. [RHV Preparing GPU Passthrough](https://access.redhat.com/documentation/en-us/red_hat_virtualization/4.1/html-single/administration_guide/index#Preparing_GPU_Passthrough)
+  2. [Scyld Cloud Workstation Documentation](https://updates.penguincomputing.com/scw/scyld-cloud-workstation/)
